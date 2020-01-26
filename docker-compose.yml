@@ -7,15 +7,15 @@ services:
     container_name: nginx-main
     restart: unless-stopped
     volumes:
-      - ./volumes/nginx/conf/:/etc/nginx/conf.d/
-      - ./volumes/nginx/cert/wildcard.vivaconagua.org.chained.crt:/etc/nginx/wildcard.vivaconagua.org.chained.crt
-      - ./volumes/nginx/cert/wildcard.vivaconagua.org.key:/etc/nginx/wildcard.vivaconagua.org.key
+      - ./volumes/nginx-main/conf/:/etc/nginx/conf.d/
+      - ./volumes/nginx-main/cert/wildcard.vivaconagua.org.chained.crt:/etc/nginx/wildcard.vivaconagua.org.chained.crt
+      - ./volumes/nginx-main/cert/wildcard.vivaconagua.org.key:/etc/nginx/wildcard.vivaconagua.org.key
     ports:
       - 80:80
       - 443:443
     networks:
       default:
-        ipv4_address: 172.2.0.2
+        ipv4_address: 172.2.10.1
 
   nginx-pool:
     image: nginx:1.13.7
@@ -26,8 +26,7 @@ services:
    # networks: default
     networks:
       default:
-        ipv4_address: 172.2.10.1
-
+        ipv4_address: 172.2.10.2
 
   nginx-mattermost:
     image: nginx:1.13.7
@@ -35,10 +34,9 @@ services:
     restart: unless-stopped
     volumes:
       - ./volumes/nginx-mattermost/conf/:/etc/nginx/conf.d/
-        # networks: default 
     networks:
       default:
-        ipv4_address: 172.2.10.2
+        ipv4_address: 172.2.10.3
 
   ##
   # Pool fontend docker
@@ -51,15 +49,15 @@ services:
     networks:
       default:
         ipv4_address: 172.2.50.1
-  
-   waves-frontend:
-     image: vivaconagua/waves-frontend:latest
-     build: ./waves-frontend
-     container_name: waves-frontend
-     restart: unless-stopped
-     networks:
-       default:
-         ipv4_address: 172.2.50.2
+
+  waves-frontend:
+    image: vivaconagua/waves-frontend:latest
+    build: ./waves-frontend
+    container_name: waves-frontend
+    restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: 172.2.50.2
         
   stream-frontend:
     image: vivaconagua/stream-frontend:latest
@@ -88,28 +86,15 @@ services:
     volumes:
       - ./volumes/docu/default.conf:/etc/nginx/conf.d/default.conf
       - ./stream-backend/target/scala-2.12/api/:/etc/nginx/html/docu/stream-backend/
-        #  - ./volumes/nginax/cert/wildcard.vivaconagua.org.key:/etc/nginx/wildcard.vivaconagua.org.key
     networks:
       default:
-        ipv4_address: 172.2.0.10
+        ipv4_address: 172.2.60.10
 
 
   ##
   # Pool backend docker
   ##
-  dispenser:
-    image: vivaconagua/dispenser:latest
-    #build: ./drops
-    container_name: dispenser
-    restart: unless-stopped
-    volumes:
-      - ./volumes/dispenser/application.conf:/opt/docker/conf/application.conf
-      - ./volumes/dispenser/navigations/:/opt/docker/conf/navigation/jsons/
-    networks:
-      default:
-        ipv4_address: 172.2.100.4
-
-
+  
   drops:
     image: vivaconagua/drops:develop-test
     #build: ./drops
@@ -132,17 +117,45 @@ services:
       default:
         ipv4_address: 172.2.0.8
 
-
-  waves-backend:
-    image: vivaconagua/canal-backend:latest
-    build: ./canal-backend
-    container_name: canal-backend
+  assets:
+    image: vivaconagua/assets:latest
+    build: ./assets
+    container_name: assets-backend
     restart: unless-stopped
-   # volumes:
-   #   - ./volumes/canal-backend/canal_backend_settings.py:/app/canal/settings.py
+    volumes:
+      - ./volumes/assets/files/:/public/files/
     networks:
       default:
-        ipv4_address: 172.2.0.33
+        ipv4_address: 172.2.0.100
+
+  waves-backend:
+    image: vivaconagua/waves-backend:latest
+    build: ./waves-backend
+    container_name: waves-backend
+    restart: unless-stopped
+    environment:
+      - HOST=172.2.200.8
+      - USER_NAME=waves
+      - PASSWORD=waves
+      - DATABASE=waves 
+   # volumes:
+   #  - ./volumes/waves-backend/canal_backend_settings.py:/app/canal/settings.py
+    networks:
+      default:
+        ipv4_address: 172.2.0.101
+
+  dispenser:
+    image: vivaconagua/dispenser:latest
+    container_name: dispenser
+    restart: unless-stopped
+    volumes:
+      - ./volumes/dispenser/application.conf:/opt/docker/conf/application.conf
+      - ./volumes/dispenser/navigations/:/opt/docker/conf/navigation/jsons/
+    networks:
+      default:
+        ipv4_address: 172.2.100.4
+
+
   ##
   # Architecture
   ##
@@ -186,7 +199,7 @@ services:
          ipv4_address: 172.2.200.7
 
   waves-database:
-     image: mariadb
+     image: mysql
      container_name: waves-database
      environment: 
       - MYSQL_DATABASE=waves 
@@ -195,10 +208,10 @@ services:
       - MYSQL_ROOT_PASSWORD=yes 
      restart: unless-stopped
      volumes: 
-       - ./volumes/stream-database/mysql/:/var/lib/mysql/
+       - ./volumes/waves-database/mysql/:/var/lib/mysql/
      networks:
        default:
-         ipv4_address: 172.2.200.7
+         ipv4_address: 172.2.200.8
 
 # start docker in pool-network
 networks:
