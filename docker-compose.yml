@@ -138,6 +138,11 @@ services:
       - USER_NAME=waves
       - PASSWORD=waves
       - DATABASE=waves 
+      - OAUTH_BASE_URI=https://stage.vivaconagua.org
+      - CLIENT_ID=wavesex
+      - CLIENT_SECRET=waves
+      - REDIRECT_URI=http://stage.vivaconagua.org/waves/api/v1/oauth
+      - JWT_SECRET=“as0d9a08d0a9d8a0sd”
    # volumes:
    #  - ./volumes/waves-backend/canal_backend_settings.py:/app/canal/settings.py
     networks:
@@ -199,13 +204,13 @@ services:
          ipv4_address: 172.2.200.7
 
   waves-database:
-     image: mysql
+     image: mariadb
      container_name: waves-database
      environment: 
       - MYSQL_DATABASE=waves 
       - MYSQL_USER=waves
-      - MYSQL_PASSWORD=waves 
-      - MYSQL_ROOT_PASSWORD=yes 
+      - MYSQL_PASSWORD=waves
+      - MYSQL_ROOT_PASSWORD=waves
      restart: unless-stopped
      volumes: 
        - ./volumes/waves-database/mysql/:/var/lib/mysql/
