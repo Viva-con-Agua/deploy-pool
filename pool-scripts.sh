@@ -1,6 +1,34 @@
+####
+# deployment scripts for stage
+##
 
+
+
+# Pull all repos
+pull_repos(){
+	cd repos &&
+	git clone -b develop https://github.com/Viva-con-Agua/stream-frontend.git 
+	git clone -b develop https://github.com/Viva-con-Agua/waves-backend.git
+	git clone -b develop https://github.com/Viva-con-Agua/waves-frontend.git 
+	git clone -b develop https://github.com/Viva-con-Agua/arise.git 
+	git clone -b develop https://github.com/Viva-con-Agua/canal-frontend.git 
+	git clone -b develop https://github.com/Viva-con-Agua/canal-backend.git
+	git clone -b develop https://github.com/Viva-con-Agua/assets.git
+}
+
+# pull repo update docker and publis as develop
 build_and_setup(){
-	cd $1 && git pull && cd ../ && docker-compose up -d --build $1 && publish_docker $1 develop; 
+	cd repos/${1} && git pull && cd ../../ && docker-compose up -d --build $1 && publish_docker $1 develop; 
+}
+
+# build and push docker with changes
+build_and_push(){
+	docker-compose up -d --build $1 && 
+	cd repos/$i{1} &&
+	git add package.json &&	
+	git commit -m "update repo by stage" &&
+	git push origin develop &&
+	publish_docker $1 develop; 
 }
 
 restart(){
@@ -21,7 +49,7 @@ set_navigation(){
 update_npm(){
 	
 		# go into service folder
-		cd $1 &&
+		cd repos/${1} &&
 		
 		# pull repo 
 		git pull &&
@@ -30,9 +58,9 @@ update_npm(){
 		# update npm packages
 		ncu -u &&
 		# build docker
-		cd ../ && docker-compose up -d --build $1 &&
+		cd ../../ && docker-compose up -d --build $1 &&
 		#  go into service folder
-		cd $1 &&
+		cd repos/${1} &&
 		rm package.json.bak &&
 		git add package.json &&	
 		git commit -m "update npm package versions" &&
@@ -47,11 +75,13 @@ update-frontend(){
 }
 
 case $1 in
+	pullAll) pull_repos;;
 	update) build_and_setup $2;;
 	restart) restart $2;;
 	publish) publish_docker $2 $3;;
 	initNav) set_navigation;;
 	updatePackage) update_npm $2 || echo "ERROR DOCKER ${1} CANT UPDATE" ;;
+	push) build_and_push $2 || echo "ERROR"
 esac
 
 

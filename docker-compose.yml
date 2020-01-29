@@ -1,20 +1,23 @@
 version: '3'
 
 services:
-  # setup nginx main
+  #########
+  # Nginx #
+  #########
+
   nginx-main:
     image: nginx:1.13.7
     container_name: nginx-main
     restart: unless-stopped
     volumes:
-      - ./volumes/nginx-main/conf/:/etc/nginx/conf.d/
+      - ./routes/nginx-main/conf/:/etc/nginx/conf.d/
       - ./volumes/nginx-main/cert/wildcard.vivaconagua.org.chained.crt:/etc/nginx/wildcard.vivaconagua.org.chained.crt
       - ./volumes/nginx-main/cert/wildcard.vivaconagua.org.key:/etc/nginx/wildcard.vivaconagua.org.key
     ports:
       - 80:80
       - 443:443
     networks:
-      default:
+      pool-network:
         ipv4_address: 172.2.10.1
 
   nginx-pool:
@@ -22,10 +25,9 @@ services:
     container_name: nginx-pool
     restart: unless-stopped
     volumes:
-      - ./volumes/nginx-pool/conf/:/etc/nginx/conf.d/
-   # networks: default
+      - ./routes/nginx-pool/conf/:/etc/nginx/conf.d/
     networks:
-      default:
+      pool-network:
         ipv4_address: 172.2.10.2
 
   nginx-mattermost:
@@ -33,146 +35,36 @@ services:
     container_name: nginx-mattermost
     restart: unless-stopped
     volumes:
-      - ./volumes/nginx-mattermost/conf/:/etc/nginx/conf.d/
+      - ./routes/nginx-mattermost/conf/:/etc/nginx/conf.d/
     networks:
-      default:
+      pool-network:
         ipv4_address: 172.2.10.3
 
-  ##
-  # Pool fontend docker
-  ##
+  #########
+  # Drops #
+  #########
   arise:
     image: vivaconagua/arise:latest
-    build: ./arise
+    build: ./repos/arise
     container_name: arise
     restart: unless-stopped
     networks:
-      default:
+      pool-network:
         ipv4_address: 172.2.50.1
-
-  waves-frontend:
-    image: vivaconagua/waves-frontend:latest
-    build: ./waves-frontend
-    container_name: waves-frontend
-    restart: unless-stopped
-    networks:
-      default:
-        ipv4_address: 172.2.50.2
-        
-  stream-frontend:
-    image: vivaconagua/stream-frontend:latest
-    build: ./stream-frontend
-    container_name: stream-frontend
-    restart: unless-stopped
-    networks:
-      default:
-        ipv4_address: 172.2.50.3
-
-  canal-frontend:
-    image: vivaconagua/canal-frontend:latest
-    build: ./canal-frontend
-    environment:
-      - "VUE_APP_MM_URL=https://mattermost.stage.vivaconagua.org"
-    container_name: canal-frontend
-    restart: unless-stopped
-    networks:
-      default:
-        ipv4_address: 172.2.50.5
-
-  docu:
-    image: nginx:1.13.7
-    container_name: docu
-    restart: unless-stopped
-    volumes:
-      - ./volumes/docu/default.conf:/etc/nginx/conf.d/default.conf
-      - ./stream-backend/target/scala-2.12/api/:/etc/nginx/html/docu/stream-backend/
-    networks:
-      default:
-        ipv4_address: 172.2.60.10
-
-
-  ##
-  # Pool backend docker
-  ##
   
   drops:
     image: vivaconagua/drops:develop-test
-    #build: ./drops
     container_name: drops
     restart: unless-stopped
+    links:
+      - nats
+      - drops-database
     volumes:
       - ./volumes/drops/application.conf:/opt/docker/conf/application.conf
     networks:
-      default:
-        ipv4_address: 172.2.0.3
+      pool-network:
+        ipv4_address: 172.2.100.1
 
-  stream-backend:
-    image: vivaconagua/stream-backend:latest
-    #build: ./drops
-    container_name: stream-backend
-    restart: unless-stopped
-    volumes:
-      - ./volumes/stream-backend/application.conf:/opt/docker/conf/application.conf
-    networks:
-      default:
-        ipv4_address: 172.2.0.8
-
-  assets:
-    image: vivaconagua/assets:latest
-    build: ./assets
-    container_name: assets-backend
-    restart: unless-stopped
-    volumes:
-      - ./volumes/assets/files/:/public/files/
-    networks:
-      default:
-        ipv4_address: 172.2.0.100
-
-  waves-backend:
-    image: vivaconagua/waves-backend:latest
-    build: ./waves-backend
-    container_name: waves-backend
-    restart: unless-stopped
-    environment:
-      - HOST=172.2.200.8
-      - USER_NAME=waves
-      - PASSWORD=waves
-      - DATABASE=waves 
-      - OAUTH_BASE_URI=https://stage.vivaconagua.org
-      - CLIENT_ID=wavesex
-      - CLIENT_SECRET=waves
-      - REDIRECT_URI=http://stage.vivaconagua.org/waves/api/v1/oauth
-      - JWT_SECRET=“as0d9a08d0a9d8a0sd”
-   # volumes:
-   #  - ./volumes/waves-backend/canal_backend_settings.py:/app/canal/settings.py
-    networks:
-      default:
-        ipv4_address: 172.2.0.101
-
-  dispenser:
-    image: vivaconagua/dispenser:latest
-    container_name: dispenser
-    restart: unless-stopped
-    volumes:
-      - ./volumes/dispenser/application.conf:/opt/docker/conf/application.conf
-      - ./volumes/dispenser/navigations/:/opt/docker/conf/navigation/jsons/
-    networks:
-      default:
-        ipv4_address: 172.2.100.4
-
-
-  ##
-  # Architecture
-  ##
-  nats:
-    image: nats:1.0.6
-    container_name: pool-nats
-    restart: unless-stopped
-    networks:
-      default:
-        ipv4_address: 172.2.100.2
-  
-  # Database
   drops-database:
      image: mariadb
      container_name: drops-database
@@ -185,8 +77,82 @@ services:
      volumes: 
        - ./volumes/drops-database/mysql/:/var/lib/mysql/
      networks:
-       default:
+       pool-network:
+         ipv4_address: 172.2.200.1
+
+  #########
+  # Waves #
+  #########
+  waves-frontend:
+    image: vivaconagua/waves-frontend:latest
+    build: ./repos/waves-frontend
+    container_name: waves-frontend
+    restart: unless-stopped
+    networks:
+      pool-network:
+        ipv4_address: 172.2.50.2
+  
+  waves-backend:
+    image: vivaconagua/waves-backend:latest
+    build: ./repos/waves-backend
+    container_name: waves-backend
+    restart: unless-stopped
+    links:
+      - waves-database
+      - nats
+    environment:
+      - HOST=172.2.200.2
+      - USER_NAME=waves
+      - PASSWORD=waves
+      - DATABASE=waves 
+      - OAUTH_BASE_URI=https://stage.vivaconagua.org
+      - CLIENT_ID=wavesex
+      - CLIENT_SECRET=waves
+      - REDIRECT_URI=http://stage.vivaconagua.org/waves/api/v1/oauth
+      - JWT_SECRET=“as0d9a08d0a9d8a0sd”
+    networks:
+      pool-network:
+        ipv4_address: 172.2.100.2
+   
+  waves-database:
+     image: mariadb
+     container_name: waves-database
+     environment: 
+      - MYSQL_DATABASE=waves 
+      - MYSQL_USER=waves
+      - MYSQL_PASSWORD=waves
+      - MYSQL_ROOT_PASSWORD=waves
+     restart: unless-stopped
+     volumes: 
+       - ./volumes/waves-database/mysql/:/var/lib/mysql/
+     networks:
+       pool-network:
          ipv4_address: 172.2.200.2
+
+  ##########
+  # Stream #
+  ##########
+  stream-frontend:
+    image: vivaconagua/stream-frontend:latest
+    build: ./repos/stream-frontend
+    container_name: stream-frontend
+    restart: unless-stopped
+    networks:
+      pool-network:
+        ipv4_address: 172.2.50.3
+  
+  stream-backend:
+    image: vivaconagua/stream-backend:latest
+    container_name: stream-backend
+    restart: unless-stopped
+    links:
+      - stream-database
+      - nats
+    volumes:
+      - ./volumes/stream-backend/application.conf:/opt/docker/conf/application.conf
+    networks:
+      pool-network:
+        ipv4_address: 172.2.100.3
 
   stream-database:
      image: mariadb
@@ -200,26 +166,90 @@ services:
      volumes: 
        - ./volumes/stream-database/mysql/:/var/lib/mysql/
      networks:
-       default:
-         ipv4_address: 172.2.200.7
+       pool-network:
+         ipv4_address: 172.2.200.3
+  
+  #############
+  # dispenser #
+  #############
+  dispenser:
+    image: vivaconagua/dispenser:develop
+    container_name: dispenser
+    restart: unless-stopped
+    volumes:
+      - ./volumes/dispenser/application.conf:/opt/docker/conf/application.conf
+      - ./navigation/:/opt/docker/conf/navigation/jsons/
+    networks:
+      pool-network:
+        ipv4_address: 172.2.100.4
 
-  waves-database:
-     image: mariadb
-     container_name: waves-database
-     environment: 
-      - MYSQL_DATABASE=waves 
-      - MYSQL_USER=waves
-      - MYSQL_PASSWORD=waves
-      - MYSQL_ROOT_PASSWORD=waves
-     restart: unless-stopped
-     volumes: 
-       - ./volumes/waves-database/mysql/:/var/lib/mysql/
-     networks:
-       default:
-         ipv4_address: 172.2.200.8
+  dispenser-database:
+    image: mongo
+    container_name: dispenser-database
+    restart: always
+    volumes: 
+       - ./volumes/dispenser-database/mongodb/:/data/db/
+    networks:
+      pool-network:
+        ipv4_address: 172.2.200.4
 
-# start docker in pool-network
+  #########
+  # canal #
+  #########
+  canal-frontend:
+    image: vivaconagua/canal-frontend:latest
+    build: ./repos/canal-frontend
+    environment:
+      - "VUE_APP_MM_URL=https://mattermost.stage.vivaconagua.org"
+    container_name: canal-frontend
+    restart: unless-stopped
+    networks:
+      pool-network:
+        ipv4_address: 172.2.50.5
+  
+  ##########
+  # Assets #
+  ##########
+  assets:
+    image: vivaconagua/assets:latest
+    build: ./repos/assets
+    container_name: assets-backend
+    restart: unless-stopped
+    volumes:
+      - ./volumes/assets/files/:/public/files/
+    networks:
+      pool-network:
+        ipv4_address: 172.2.100.6
+  
+  ################
+  # Architecture #
+  ################
+  
+  nats:
+    image: nats:1.0.6
+    container_name: pool-nats
+    restart: unless-stopped
+    networks:
+      pool-network:
+        ipv4_address: 172.2.150.1
+  
+  ########
+  # Doku #
+  ########
+  docu:
+    image: nginx:1.13.7
+    container_name: docu
+    restart: unless-stopped
+    volumes:
+      - ./volumes/docu/default.conf:/etc/nginx/conf.d/default.conf
+      - ./stream-backend/target/scala-2.12/api/:/etc/nginx/html/docu/stream-backend/
+    networks:
+      pool-network:
+        ipv4_address: 172.2.60.10
+  
 networks:
-  default:
-    external:
-      name: pool-network
+  pool-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.2.0.0/16 
