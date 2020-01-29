@@ -28,7 +28,7 @@ Script to help with deployment. Can be used via `./pool-scripts <command> <servi
 pullAll                         # pull all supported "develop" branches from github
 update <serviceName>            # pull the "develop" branch, build and setup docker and push docker into "develop"
 restart <serviceName>           # delete and set up service
-publish <serviceName> <version> # publish docker with given verison
+publish <serviceName> <version> # publish docker with given version
 initNav                         # set navigation 
 updatePackage <serviceName>     # update npm packages, create docker and push to github and dockerhub
 push <serviceName>              # after changing something on stage, rebuild docker and push the service on github
