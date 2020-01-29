@@ -22,19 +22,19 @@ The navigation is defined as JSON in the navigation directory. Only the GlobalNa
 
 ## pool-scripts
 
-Script for help with deployment. Can be use via `./pool-scripts <command> <serviceName / version>`
+Script to help with deployment. Can be used via `./pool-scripts <command> <serviceName / version>`
 
 ```
-pullAll                         # pull all supported develop branches from github
-update <serviceName>            # pull develop branch, build and setup docker, push docker as develop
-restart <serviceName>           # delete and up service
+pullAll                         # pull all supported "develop" branches from github
+update <serviceName>            # pull the "develop" branch, build and setup docker and push docker into "develop"
+restart <serviceName>           # delete and set up service
 publish <serviceName> <version> # publish docker with given verison
 initNav                         # set navigation 
-updatePackage <serviceName>     # update npm packages create docker push to github and dockerhub
-push <serviceName>              # if you need to change something on stage, build docker and push service on github
+updatePackage <serviceName>     # update npm packages, create docker and push to github and dockerhub
+push <serviceName>              # after changing something on stage, rebuild docker and push the service on github
 ```
 
-You can use all docker-compose magic you need!!!
+You can use all of the docker-compose magic you need!!!
 
 ## volumes
 Store data such as application.conf or databases. All files in this directory are mounted in the dockers via `volumes` command. Changes take effect after restarting the service: `docker-compose restart <serviceName>`
